@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Controle de Vendas</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#f5f6fa;color:#222;font-family:Arial,sans-serif}
+header{background:#253858;color:white;padding:22px 5%;}header h1{margin:0 0 6px}header p{margin:0;color:#dbe3f0}
+main{max-width:1150px;margin:24px auto;padding:0 16px}
+section{background:white;padding:20px;margin-bottom:18px;border:1px solid #e1e5ec;border-radius:10px}
+h2{font-size:19px;margin:0 0 14px;color:#253858}
+.cards{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+.card{background:#edf1fa;padding:15px;border-radius:8px}.card span{font-size:13px;color:#53627a}.card b{display:block;font-size:22px;margin-top:8px}
+table{border-collapse:collapse;width:100%;font-size:13px}th,td{border:1px solid #ddd;padding:9px;text-align:left}th{background:#e9edf6}
+.wrap{overflow-x:auto}
+.columns{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+label{display:block;font-size:13px;margin:10px 0 5px}
+input,select{width:100%;padding:10px;border:1px solid #cbd2df;border-radius:6px;background:white}
+button{background:#3157a5;color:white;border:0;border-radius:6px;padding:11px 16px;margin-top:12px;cursor:pointer}
+.result{margin-top:12px;padding:13px;background:#edf1fa;border-radius:7px;font-weight:bold}
+small{color:#667085}
+@media(max-width:750px){.cards{grid-template-columns:repeat(2,1fr)}.columns{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<header><h1>Controle de Vendas</h1><p>Cadastro de vendas, produtos e cálculo de frete por região</p></header>
+<main>
+<section><h2>Resumo das vendas</h2><div class="cards">
+<div class="card"><span>Faturamento total</span><b id="faturamento">-</b></div>
+<div class="card"><span>Vendas</span><b id="numeroVendas">-</b></div>
+<div class="card"><span>Unidades</span><b id="unidades">-</b></div>
+<div class="card"><span>Frete total</span><b id="freteTotal">-</b></div>
+</div></section>
+<div class="columns">
+<section><h2>Frete por região</h2><div class="wrap"><table><thead><tr><th>Região</th><th>Valor do frete</th></tr></thead><tbody id="tabelaRegioes"></tbody></table></div>
+<label for="regiaoCalc">Escolha a região para calcular</label><select id="regiaoCalc"></select>
+<div class="result" id="resultadoFrete">Selecione uma região.</div>
+</section>
+<section><h2>Produtos e preços</h2><div class="wrap"><table><thead><tr><th>Produto</th><th>Preço unitário</th></tr></thead><tbody id="tabelaProdutos"></tbody></table></div></section>
+</div>
+<section><h2>Registrar nova venda</h2>
+<div class="columns">
+<div><label>Região</label><select id="regiaoNova"></select></div>
+<div><label>Estado (UF)</label><input id="ufNova" maxlength="2" placeholder="Ex.: SP"></div>
+<div><label>Produto</label><select id="produtoNovo"></select></div>
+<div><label>Data</label><input id="dataNova" type="date"></div>
+<div><label>Quantidade</label><input id="qtdNova" type="number" min="1" value="1"></div>
+<div><label>Preço unitário</label><input id="precoNovo" type="number" min="0" step="0.01"></div>
+</div>
+<div class="result" id="previa">Escolha região e produto para ver o total.</div>
+<button id="adicionar">Adicionar venda</button>
+<p id="mensagem"></p>
+</section>
+<section><h2>Histórico de vendas (29 registros originais)</h2><label>Pesquisar</label><input id="pesquisa" placeholder="Digite produto, região ou estado"><br><br>
+<div class="wrap"><table><thead><tr><th>Data</th><th>Região</th><th>UF</th><th>Produto</th><th>Qtd.</th><th>Preço unitário</th><th>Frete</th><th>Total</th></tr></thead><tbody id="historico"></tbody></table></div>
+</section>
+</main>
+<script>
+const DADOS = {"vendas": [["Região Centro-Oeste", "GO", "Smartphone iOS", "17/11/2024", 4, 8300, 15], ["Região Sudeste", "SP", "Pen drive 32GB", "17/11/2024", 4, 45, 10], ["Região Sul", "RS", "Smartphone iOS", "17/11/2024", 2, 8300, 15], ["Região Sul", "RS", "Monitor OLED 33\"", "18/11/2024", 1, 1790, 15], ["Região Sudeste", "SP", "SmartTV 50\" 4K", "18/11/2024", 1, 2950, 10], ["Região Nordeste", "BA", "Smartphone Android", "18/11/2024", 4, 3200, 20], ["Região Sudeste", "SP", "SmartTV 50\" 4K", "18/11/2024", 2, 2950, 10], ["Região Sudeste", "RJ", "TV 48\" 4K", "19/11/2024", 4, 2950, 10], ["Região Nordeste", "BA", "SmartTV 50\" 4K", "19/11/2024", 5, 2950, 20], ["Região Sudeste", "RJ", "Smartphone Android", "19/11/2024", 1, 3200, 10], ["Região Sudeste", "RJ", "TV 60\" 4K", "19/11/2024", 1, 3470, 10], ["Região Centro-Oeste", "GO", "Monitor OLED 33\"", "19/11/2024", 3, 1790, 15], ["Região Sudeste", "MG", "TV 60\" 4K", "20/11/2024", 5, 3470, 10], ["Região Norte", "AM", "Smartphone Android", "20/11/2024", 4, 3200, 25], ["Região Sudeste", "MG", "Pen drive 32GB", "20/11/2024", 5, 45, 10], ["Região Sudeste", "ES", "Monitor OLED 33\"", "20/11/2024", 4, 1790, 10], ["Região Sudeste", "ES", "Pen drive 32GB", "20/11/2024", 1, 45, 10], ["Região Sul", "PR", "Smartphone iOS", "20/11/2024", 2, 8300, 15], ["Região Sul", "PR", "Monitor OLED 33\"", "20/11/2024", 5, 1790, 15], ["Região Sul", "PR", "Smartphone iOS", "20/11/2024", 1, 8300, 15], ["Região Sudeste", "SP", "Monitor OLED 33\"", "21/11/2024", 5, 1790, 10], ["Região Sudeste", "SP", "Smartphone Android", "21/11/2024", 1, 3200, 10], ["Região Sul", "RS", "TV 60\" 4K", "21/11/2024", 2, 3470, 15], ["Região Sudeste", "SP", "Monitor OLED 33\"", "21/11/2024", 5, 1790, 10], ["Região Sudeste", "RJ", "Monitor OLED 33\"", "21/11/2024", 5, 1790, 10], ["Região Sudeste", "RJ", "TV 60\" 4K", "21/11/2024", 3, 3470, 10], ["Região Sudeste", "MG", "Monitor OLED 33\"", "21/11/2024", 3, 1790, 10], ["Região Sudeste", "MG", "Smartphone iOS", "21/11/2024", 1, 8300, 10], ["Região Nordeste", "BA", "Pen drive 32GB", "21/11/2024", 3, 45, 20]], "produtos": {"Pen drive 32GB": 45, "Monitor OLED 33\"": 1790, "Smartphone Android": 3200, "TV 48\" 4K": 2950, "TV 60\" 4K": 3470, "Smartphone iOS": 8300, "SmartTV 50\" 4K": 2950}, "regioes": {"Região Centro-Oeste": 15, "Região Sudeste": 10, "Região Sul": 15, "Região Nordeste": 20, "Região Norte": 25}};
+const dinheiro = n => Number(n).toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
+let vendas = DADOS.vendas.map(v=>({regiao:v[0],uf:v[1],produto:v[2],data:v[3],qtd:v[4],preco:v[5],frete:v[6]}));
+try { const extras=JSON.parse(localStorage.getItem('vendasExtrasSimples')||'[]'); vendas=vendas.concat(extras); } catch(e) {}
+function preencherSelect(id, lista, primeiro=false){
+ const el=document.getElementById(id); el.innerHTML=primeiro?'<option value="">Selecione...</option>':'';
+ Object.keys(lista).forEach(nome=>{const op=document.createElement('option');op.value=nome;op.textContent=nome;el.appendChild(op)});
+}
+function montarTabelas(){
+ document.getElementById('tabelaRegioes').innerHTML=Object.entries(DADOS.regioes).map(([r,v])=>`<tr><td>${r}</td><td>${dinheiro(v)}</td></tr>`).join('');
+ document.getElementById('tabelaProdutos').innerHTML=Object.entries(DADOS.produtos).map(([p,v])=>`<tr><td>${p}</td><td>${dinheiro(v)}</td></tr>`).join('');
+}
+function desenharHistorico(){
+ const termo=document.getElementById('pesquisa').value.toLowerCase();
+ document.getElementById('historico').innerHTML=vendas.filter(v=>(v.regiao+' '+v.uf+' '+v.produto).toLowerCase().includes(termo)).map(v=>`<tr><td>${v.data}</td><td>${v.regiao}</td><td>${v.uf}</td><td>${v.produto}</td><td>${v.qtd}</td><td>${dinheiro(v.preco)}</td><td>${dinheiro(v.frete)}</td><td>${dinheiro(v.qtd*v.preco+v.frete)}</td></tr>`).join('');
+}
+function atualizarResumo(){
+ document.getElementById('faturamento').textContent=dinheiro(vendas.reduce((s,v)=>s+v.qtd*v.preco+v.frete,0));
+ document.getElementById('numeroVendas').textContent=vendas.length;
+ document.getElementById('unidades').textContent=vendas.reduce((s,v)=>s+v.qtd,0);
+ document.getElementById('freteTotal').textContent=dinheiro(vendas.reduce((s,v)=>s+v.frete,0));
+}
+function atualizarPrevia(){
+ const r=document.getElementById('regiaoNova').value,p=document.getElementById('produtoNovo').value;
+ const q=Number(document.getElementById('qtdNova').value)||0,preco=Number(document.getElementById('precoNovo').value)||0,frete=DADOS.regioes[r]||0;
+ document.getElementById('previa').textContent='Frete: '+dinheiro(frete)+' | Total: '+dinheiro(q*preco+frete);
+}
+preencherSelect('regiaoCalc',DADOS.regioes,true);
+preencherSelect('regiaoNova',DADOS.regioes,true);
+preencherSelect('produtoNovo',DADOS.produtos,true);
+montarTabelas();atualizarResumo();desenharHistorico();
+document.getElementById('regiaoCalc').addEventListener('change',e=>{
+ const v=DADOS.regioes[e.target.value];
+ document.getElementById('resultadoFrete').textContent=e.target.value?e.target.value+' = '+dinheiro(v):'Selecione uma região.';
+});
+document.getElementById('produtoNovo').addEventListener('change',e=>{document.getElementById('precoNovo').value=DADOS.produtos[e.target.value]||'';atualizarPrevia()});
+['regiaoNova','qtdNova','precoNovo'].forEach(id=>document.getElementById(id).addEventListener('input',atualizarPrevia));
+document.getElementById('pesquisa').addEventListener('input',desenharHistorico);
+document.getElementById('adicionar').addEventListener('click',()=>{
+ const regiao=document.getElementById('regiaoNova').value,uf=document.getElementById('ufNova').value.trim().toUpperCase(),produto=document.getElementById('produtoNovo').value,data=document.getElementById('dataNova').value,qtd=Number(document.getElementById('qtdNova').value),preco=Number(document.getElementById('precoNovo').value);
+ if(!regiao||!uf||!produto||!data||qtd<1||preco<0){document.getElementById('mensagem').textContent='Preencha todos os campos corretamente.';return;}
+ const partes=data.split('-');const venda={regiao,uf,produto,data:partes[2]+'/'+partes[1]+'/'+partes[0],qtd,preco,frete:DADOS.regioes[regiao]};
+ vendas.push(venda);
+ const extras=vendas.slice(29);localStorage.setItem('vendasExtrasSimples',JSON.stringify(extras));
+ atualizarResumo();desenharHistorico();atualizarPrevia();
+ document.getElementById('mensagem').textContent='Venda adicionada com sucesso. Frete: '+dinheiro(venda.frete)+'. Total: '+dinheiro(qtd*preco+venda.frete)+'.';
+});
+</script>
+</body></html>
